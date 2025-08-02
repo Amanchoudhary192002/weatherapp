@@ -672,11 +672,7 @@ if (response.ok) {
     showError("Error: " + result.error);
 }
 
-                if (!weatherRes.ok) {
-                    throw new Error("City not found Please try again.");
-                }
 
-                const weatherData = await weatherRes.json();
 
                 // Now fetch forecast and pollution data using the coordinates from the weather data
                 const lat = weatherData.coord.lat;

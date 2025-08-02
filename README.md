@@ -1,7 +1,7 @@
 Live :- https://weatherapp19in.netlify.app/
 
 Most important thing cover API KEY/ hide Most  important thing 
-Great question, Aman! Hiding an API key directly in JavaScript is not secure 
+Hiding an API key directly in JavaScript is not secure 
 — because JavaScript runs in the browser, anyone can view your code and see the API key using 
 browser developer tools.
 
@@ -146,3 +146,4 @@ Go to Netlify
 Trigger a Manual Deploy from Deploys > "Trigger deploy" > "Deploy site"
 
 ✅ Now your site uses a hidden API key and safely fetches weather data.
+

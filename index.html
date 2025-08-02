@@ -354,7 +354,7 @@
     </footer>
     <script>
         // --- API Key and URLs ---
-        
+
 
         // --- DOM Elements ---
         const citySearchInput = document.getElementById('city-search-input');
@@ -660,17 +660,17 @@
             try {
                 // Fetch current weather, 5-day forecast (which we'll use for both), and air pollution data
                 const response = await fetch(`/.netlify/functions/weather?city=${city}&unit=${currentUnit}`);
-const result = await response.json();
+                const result = await response.json();
 
-if (response.ok) {
-    renderCurrentWeather(result.weather);
-    renderForecast(result.forecast);
-    renderDetails(result.weather, result.pollution);
-    drawHourlyGraph(result.forecast);
-    renderMap(result.weather.coord.lat, result.weather.coord.lon);
-} else {
-    showError("Error: " + result.error);
-}
+                if (response.ok) {
+                    renderCurrentWeather(result.weather);
+                    renderForecast(result.forecast);
+                    renderDetails(result.weather, result.pollution);
+                    drawHourlyGraph(result.forecast);
+                    renderMap(result.weather.coord.lat, result.weather.coord.lon);
+                } else {
+                    showError("Error: " + result.error);
+                }
 
 
 
@@ -776,9 +776,9 @@ if (response.ok) {
             // No initial city is fetched.
         });
 
-        
+
     </script>
-    
+
 </body>
 
 </html>

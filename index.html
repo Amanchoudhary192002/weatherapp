@@ -675,7 +675,7 @@
 
 
                 // Now fetch forecast and pollution data using the coordinates from the weather data
-                
+
 
                 const [forecastRes, pollutionRes] = await Promise.all([
                     fetch(`${FORECAST_API_URL}?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`),
@@ -692,16 +692,16 @@
                 renderMap(lat, lon);
 
             } catch (error) {
-                
+
                 // Use a custom message box instead of alert
-               
+
             } finally {
                 loadingSpinner.classList.add('hidden');
                 isFetching = false;
             }
         };
 
-       
+
 
         const updateUI = () => {
             if (!currentData || !forecastData) return;

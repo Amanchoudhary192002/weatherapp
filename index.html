@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+
+    <link rel="icon" href="/weather-icon.png" type="image/png">
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #EEAECA;
+            background: radial-gradient(circle, rgba(238, 174, 202, 1) 0%, rgba(148, 187, 233, 1) 100%);
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+        }
+
+        .section-title {
+            font-weight: 500;
+            font-size: 1.125rem;
+            /* text-lg */
+            margin-bottom: 1rem;
+        }
+
+        /* Style for the hourly graph canvas container */
+        #graph-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        #hourly-graph {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Custom styles for the wind compass */
+        .wind-compass {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            /* bg-gray-200 */
+        }
+
+        .wind-arrow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: 50% 100%;
+            width: 16px;
+            height: 16px;
+            background-color: #1e40af;
+            /* blue-800 */
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            transform: translate(-50%, -100%) rotate(0deg);
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.4s ease-out both;
+        }
+    </style>
+</head>
+<!-- The body is a flex container that centers the content block -->
+
+<body class="bg-[#f0f2f5] flex flex-col min-h-screen p-4 md:p-8">
+    <marquee behavior="scroll" direction="left" scrollamount="10" class="text-Black-600 font-semibold text-sm mb-2">
+        🌟 This website is built by Aman Choudhary | Educational & Project Purpose Only 🌟
+    </marquee>
+
+    <!-- This div is what centers the entire dashboard both horizontally and vertically -->
+    <div class="flex-grow flex items-center justify-center">
+        <!-- Main content container with a maximum width for desktop, centered on the page with mx-auto -->
+        <div class="max-w-7xl w-full">
+            <h6 class="text-lg font-semibold text-center text-gray-800 mb-4 animate-fade-in">
+                Weather App
+            </h6>
+            <!-- Centered Search Bar -->
+            <div class="flex justify-center mb-6">
+                <div class="card p-4 flex w-full md:max-w-lg rounded-xl shadow-md">
+                    <input id="city-search-input" type="text" placeholder="Enter city name..."
+                        class="flex-grow p-2 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                    <button id="search-button"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-lg transition duration-200 ease-in-out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Container -->
+            <!-- This grid container defines the responsive layout:
+                 - on mobile (default): a single column
+                 - on medium screens (md): two columns
+                 - on large screens (lg): three columns
+            -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- Left Column (Main Weather and Forecast) -->
+                <div class="col-span-1 md:col-span-2 lg:col-span-1">
+
+
+
+                    <!-- Weather content, hidden by default -->
+                    <div id="weather-content" class="hidden">
+                        <div id="main-weather-card" class="card p-6 flex flex-col items-center mb-6 ">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h1 id="current-city" class="text-xl font-semibold"></h1>
+                                    <p id="current-time" class="text-gray-500 text-sm"></p>
+                                </div>
+                                <div class="flex items-center text-sm font-semibold text-gray-400">
+                                    <button id="temp-f" class="px-2 py-1">°F</button>
+                                    <span class="text-gray-300">|</span>
+                                    <button id="temp-c" class="px-2 py-1 text-gray-800">°C</button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex items-center gap-4">
+                                    <div id="current-weather-icon" class="w-20 h-20 flex-shrink-0">
+                                        <!-- Weather Icon SVG placeholder -->
+                                    </div>
+                                    <div>
+                                        <p id="current-temp" class="text-7xl font-light"></p>
+                                        <p id="weather-description" class="text-sm"></p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p id="temp-high-low" class="text-xl font-medium text-gray-700"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 10-Day Forecast Cards -->
+                    <div id="forecast-card" class="card p-4 hidden">
+                        <h2 class="section-title">7-Day Forecast</h2>
+                        <div id="forecast-container"
+                            class="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-2 xl:grid-cols-5 gap-y-4 gap-x-2">
+                            <!-- Forecast items will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Hourly Graph Card -->
+                    <div id="hourly-card" class="card p-4 mt-6 hidden">
+                        <h2 class="section-title">Hourly Forecast</h2>
+                        <div id="graph-container">
+                            <canvas id="hourly-graph"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Column: Details -->
+                <div id="middle-column" class="col-span-1 md:col-span-1 lg:col-span-1 grid grid-cols-1 gap-6 hidden">
+
+                    <!-- Visibility Card -->
+                    <div class="card flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-gray-500 font-medium text-sm">Visibility</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M16 11a4 4 0 00-4-4h-1.586a1 1 0 01-.707-.293l-1.414-1.414A4 4 0 006.586 4H6a4 4 0 00-4 4v5a4 4 0 004 4h7a4 4 0 004-4v-2z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <p id="visibility-value" class="text-2xl font-semibold"></p>
+                        <p id="visibility-desc" class="text-gray-500 text-sm"></p>
+                    </div>
+
+                    <!-- Pressure Card -->
+                    <div class="card flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-gray-500 font-medium text-sm">Pressure</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM6.5 9a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h7a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5h-7z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <p id="pressure-value" class="text-2xl font-semibold"></p>
+                        <p id="pressure-desc" class="text-gray-500 text-sm"></p>
+                    </div>
+
+                    <!-- Wind Card -->
+                    <div class="card flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-gray-500 font-medium text-sm">Wind</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-4 12v4m0-4h4m-4 0h-4M6 16a2 2 0 114 0m-4 0a2 2 0 10-4 0m10 0a2 2 0 114 0m-4 0a2 2 0 10-4 0m4-8a2 2 0 114 0m-4 0a2 2 0 10-4 0" />
+                            </svg>
+                        </div>
+                        <div class="flex gap-4 items-center">
+                            <div class="wind-compass flex items-center justify-center">
+                                <div class="text-sm font-semibold text-gray-500 absolute top-1">N</div>
+                                <div class="text-sm font-semibold text-gray-500 absolute bottom-1">S</div>
+                                <div class="text-sm font-semibold text-gray-500 absolute left-1">W</div>
+                                <div class="text-sm font-semibold text-gray-500 absolute right-1">E</div>
+                                <div id="wind-arrow" class="wind-arrow"></div>
+                            </div>
+                            <div>
+                                <p id="wind-speed" class="text-xl font-semibold"></p>
+                                <p id="wind-gust" class="text-sm text-gray-500"></p>
+                            </div>
+                        </div>
+                        <p id="wind-force" class="text-gray-500 text-sm mt-2"></p>
+                    </div>
+
+                    <!-- AQI Card -->
+                    <div class="card flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-gray-500 font-medium text-sm">Air quality</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8zm2-6h12a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                            </svg>
+                        </div>
+                        <p id="aqi-value" class="text-2xl font-semibold"></p>
+                        <p id="aqi-desc" class="text-gray-500 text-sm"></p>
+                    </div>
+
+                </div>
+
+                <!-- Right Column: Additional Details -->
+                <div id="right-column" class="col-span-1 md:col-span-1 lg:col-span-1 grid grid-cols-1 gap-6 hidden">
+
+                    <!-- Humidity Card -->
+                    <div class="card flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-gray-500 font-medium text-sm">Humidity</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p id="humidity-value" class="text-2xl font-semibold"></p>
+                                <p id="dew-point" class="text-gray-500 text-sm"></p>
+                            </div>
+                            <div id="humidity-graphic" class="flex gap-1">
+                                <!-- Bars will be dynamically added -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UV Index Card -->
+                    <div class="card flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-gray-500 font-medium text-sm">UV Index</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.586 3.586a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM16 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zm-5.586 4.586a1 1 0 01-1.414 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM10 18a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zM5.414 14.586a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zm1.414-9.172a1 1 0 011.414 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM4 10a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <p id="uv-value" class="text-2xl font-semibold"></p>
+                        <p id="uv-desc" class="text-gray-500 text-sm"></p>
+                    </div>
+
+                    <!-- Sun Hours Card -->
+                    <div class="card flex flex-col justify-between">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-gray-500 font-medium text-sm">Sun hours</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path
+                                    d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.586 3.586a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM16 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zm-5.586 4.586a1 1 0 01-1.414 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM10 18a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zM5.414 14.586a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zm1.414-9.172a1 1 0 011.414 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM4 10a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <p id="sun-hours" class="text-2xl font-semibold"></p>
+                        <div class="flex justify-between items-center text-sm text-gray-500">
+                            <div class="text-center">
+                                <p id="sunrise-time" class="font-semibold"></p>
+                                <p class="text-xs">Sunrise</p>
+                            </div>
+                            <div class="text-center">
+                                <p id="sunset-time" class="font-semibold"></p>
+                                <p class="text-xs">Sunset</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Card -->
+                    <div
+                        class="card h-64 flex items-center justify-center bg-gray-100 text-gray-500 rounded-xl overflow-hidden p-0">
+                        <p id="map-placeholder">Map Placeholder</p>
+                        <div id="map-iframe-container" class="w-full h-full hidden"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading spinner, hidden by default -->
+    <div id="loading-spinner"
+        class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+        <svg class="animate-spin h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+        </svg>
+    </div>
+
+    <!-- Footer added here -->
+    <footer class="text-center mt-8 p-4 text-black-500 text-sm">
+        <p>
+            © 2025 Aman Choudhary. Built with ❤️ using Tailwind CSS. <br>
+            Educational project. Thanks for visiting!
+        </p>
+    </footer>
+    <script>
+        // --- API Key and URLs ---
+        const API_KEY = "bf8035a7185410f3434d88ac48073cdd";
+        const WEATHER_API_URL = "https://api.openweathermap.org/data/2.5/weather";
+        const FORECAST_API_URL = "https://api.openweathermap.org/data/2.5/forecast";
+        const AIR_POLLUTION_API_URL = "https://api.openweathermap.org/data/2.5/air_pollution";
+
+        // --- DOM Elements ---
+        const citySearchInput = document.getElementById('city-search-input');
+        const searchButton = document.getElementById('search-button');
+        const mainWeatherCard = document.getElementById('main-weather-card');
+        const weatherContentEl = document.getElementById('weather-content');
+        const forecastCard = document.getElementById('forecast-card');
+        const hourlyCard = document.getElementById('hourly-card');
+        const middleColumn = document.getElementById('middle-column');
+        const rightColumn = document.getElementById('right-column');
+        const currentCityEl = document.getElementById('current-city');
+        const currentTimeEl = document.getElementById('current-time');
+        const tempFBtn = document.getElementById('temp-f');
+        const tempCBtn = document.getElementById('temp-c');
+        const currentTempEl = document.getElementById('current-temp');
+        const weatherDescriptionEl = document.getElementById('weather-description');
+        const tempHighLowEl = document.getElementById('temp-high-low');
+        const forecastContainer = document.getElementById('forecast-container');
+        const hourlyGraph = document.getElementById('hourly-graph');
+        const graphContainer = document.getElementById('graph-container');
+        const currentIconEl = document.getElementById('current-weather-icon');
+        const visibilityValueEl = document.getElementById('visibility-value');
+        const pressureValueEl = document.getElementById('pressure-value');
+        const windSpeedEl = document.getElementById('wind-speed');
+        const windGustEl = document.getElementById('wind-gust');
+        const windArrowEl = document.getElementById('wind-arrow');
+        const aqiValueEl = document.getElementById('aqi-value');
+        const aqiDescEl = document.getElementById('aqi-desc');
+        const humidityValueEl = document.getElementById('humidity-value');
+        const dewPointEl = document.getElementById('dew-point');
+        const uvValueEl = document.getElementById('uv-value');
+        const uvDescEl = document.getElementById('uv-desc');
+        const sunHoursEl = document.getElementById('sun-hours');
+        const sunriseTimeEl = document.getElementById('sunrise-time');
+        const sunsetTimeEl = document.getElementById('sunset-time');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const mapPlaceholderEl = document.getElementById('map-placeholder');
+        const mapIframeContainer = document.getElementById('map-iframe-container');
+
+        // --- Global State ---
+        let currentUnit = 'metric'; // 'metric' for Celsius, 'imperial' for Fahrenheit
+        let currentData = null;
+        let forecastData = null;
+        let pollutionData = null;
+        let hourlyForecastData = null;
+        let isFetching = false;
+
+        // --- Helper functions ---
+        const getWeatherIcon = (weatherMain) => {
+            // A rich set of SVG icons to match the design
+            const iconMapping = {
+                'Clouds': `<svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16 11a4 4 0 00-4-4h-1.586a1 1 0 01-.707-.293l-1.414-1.414A4 4 0 006.586 4H6a4 4 0 00-4 4v5a4 4 0 004 4h7a4 4 0 004-4v-2z" clip-rule="evenodd" /></svg>`,
+                'Clear': `<svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-yellow-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.586 3.586a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM16 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zm-5.586 4.586a1 1 0 01-1.414 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM10 18a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zM5.414 14.586a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zm1.414-9.172a1 1 0 011.414 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM4 10a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>`,
+                'Rain': `<svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path d="M11.5 5.5a4 4 0 00-4-4h-1A6.5 6.5 0 002 9.5a.5.5 0 00.5.5h1.5a1 1 0 011 1v5a1 1 0 01-1 1H4a1 1 0 01-1-1v-1a1 1 0 00-1-1H.5a.5.5 0 00-.5.5v5a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5v-5a.5.5 0 00-.5-.5H16a1 1 0 00-1 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-5a1 1 0 011-1h1.5a.5.5 0 00.5-.5A6.5 6.5 0 0011.5 5.5z" /></svg>`,
+                'Snow': `<svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.5 14a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm-4.5 3.5a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zm4.5 12a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zm-4.5-3.5a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zM10 12a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>`,
+                'Mist': `<svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 6a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 6a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>`,
+                'Thunderstorm': `<svg xmlns="http://www.w3.org/2000/svg" class="h-full w-full text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-8a1 1 0 011-1h.586l.707-.707A1 1 0 0112 8.586V10a1 1 0 01-1 1H9a1 1 0 01-1-1zm2-7a1 1 0 011-1h.586l.707-.707A1 1 0 0112 1.586V3a1 1 0 01-1 1H9a1 1 0 01-1-1zm-2 1a1 1 0 011-1h.586l.707-.707A1 1 0 0112 2.586V4a1 1 0 01-1 1H9a1 1 0 01-1-1zm2 5a1 1 0 011-1h.586l.707-.707A1 1 0 0112 9.586V11a1 1 0 01-1 1H9a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>`,
+            };
+            return iconMapping[weatherMain] || iconMapping['Clouds']; // Default icon
+        };
+
+        const toFahrenheit = (celsius) => (celsius * 9 / 5) + 32;
+        const toCelsius = (fahrenheit) => (fahrenheit - 32) * 5 / 9;
+
+        const formatDate = (timestamp) => {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
+        };
+        const formatTime = (timestamp) => {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        };
+        const getAQIDescription = (aqi) => {
+            switch (aqi) {
+                case 1: return "Good";
+                case 2: return "Fair";
+                case 3: return "Moderate";
+                case 4: return "Poor";
+                case 5: return "Very Poor";
+                default: return "N/A";
+            }
+        };
+
+        const getUVDescription = (uv) => {
+            if (uv <= 2) return "Low";
+            if (uv <= 5) return "Moderate";
+            if (uv <= 7) return "High";
+            if (uv <= 10) return "Very High";
+            return "Extreme";
+        };
+
+        const degToCardinal = (deg) => {
+            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            const index = Math.round(deg / 45) % 8;
+            return directions[index];
+        };
+
+        const toKmPerHour = (ms) => (ms * 3.6).toFixed(0);
+
+        // --- Main rendering functions ---
+        const renderCurrentWeather = (data) => {
+            currentData = data;
+            const temp = currentUnit === 'metric' ? data.main.temp : toFahrenheit(data.main.temp);
+            const high = currentUnit === 'metric' ? data.main.temp_max : toFahrenheit(data.main.temp_max);
+            const low = currentUnit === 'metric' ? data.main.temp_min : toFahrenheit(data.main.temp_min);
+
+            currentCityEl.textContent = `${data.name}, ${data.sys.country}`;
+            currentTempEl.textContent = temp.toFixed(0);
+            weatherDescriptionEl.textContent = data.weather[0].description.replace(/\b\w/g, c => c.toUpperCase());
+            tempHighLowEl.textContent = `H${high.toFixed(0)}° L${low.toFixed(0)}°`;
+            currentIconEl.innerHTML = getWeatherIcon(data.weather[0].main);
+
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+            // Show the weather content and hide the initial message
+            mainWeatherCard.classList.remove('hidden');
+            weatherContentEl.classList.remove('hidden');
+            forecastCard.classList.remove('hidden');
+            hourlyCard.classList.remove('hidden');
+            middleColumn.classList.remove('hidden');
+            rightColumn.classList.remove('hidden');
+
+            // Show the map and hide the placeholder
+            mapPlaceholderEl.classList.add('hidden');
+            mapIframeContainer.classList.remove('hidden');
+        };
+
+        const renderForecast = (data) => {
+            forecastData = data;
+            forecastContainer.innerHTML = '';
+
+            const dailyForecastMap = new Map();
+            data.list.forEach(item => {
+                const date = new Date(item.dt * 1000).toLocaleDateString();
+                if (!dailyForecastMap.has(date)) {
+                    dailyForecastMap.set(date, item);
+                }
+            });
+
+            const dailyForecasts = Array.from(dailyForecastMap.values()).slice(0, 10);
+
+            dailyForecasts.forEach((item, index) => {
+                const day = index === 0 ? "Today" : formatDate(item.dt).slice(0, 3) + ' ' + new Date(item.dt * 1000).getDate();
+                const tempHigh = currentUnit === 'metric' ? item.main.temp_max : toFahrenheit(item.main.temp_max);
+                const tempLow = currentUnit === 'metric' ? item.main.temp_min : toFahrenheit(item.main.temp_min);
+
+                const card = document.createElement('div');
+                card.className = "flex flex-col items-center";
+                card.innerHTML = `
+                    <p class="text-sm font-medium text-gray-500">${day}</p>
+                    <div class="my-1 w-8 h-8">${getWeatherIcon(item.weather[0].main)}</div>
+                    <p class="text-xs text-gray-500">${tempHigh.toFixed(0)}°</p>
+                    <p class="text-xs text-gray-400">${tempLow.toFixed(0)}°</p>
+                `;
+                forecastContainer.appendChild(card);
+            });
+        };
+
+        const renderDetails = (weather, pollution) => {
+            // Visibility
+            visibilityValueEl.textContent = `${(weather.visibility / 1000).toFixed(0)} km`;
+            // Pressure
+            pressureValueEl.textContent = `${weather.main.pressure} mb`;
+            // Wind
+            windSpeedEl.textContent = `${toKmPerHour(weather.wind.speed)} km/h`;
+            windGustEl.textContent = `${toKmPerHour(weather.wind.gust || weather.wind.speed)} km/h`;
+            windArrowEl.style.transform = `translate(-50%, -100%) rotate(${weather.wind.deg}deg)`;
+            // AQI
+            if (pollution) {
+                const aqi = pollution.list[0].main.aqi;
+                aqiValueEl.textContent = aqi;
+                aqiDescEl.textContent = getAQIDescription(aqi);
+            }
+            // Humidity
+            humidityValueEl.textContent = `${weather.main.humidity}%`;
+            // UV Index (OpenWeather doesn't provide this, so we use a mock value)
+            uvValueEl.textContent = `3`;
+            uvDescEl.textContent = getUVDescription(3);
+
+            // Sun hours
+            const sunrise = new Date(weather.sys.sunrise * 1000);
+            const sunset = new Date(weather.sys.sunset * 1000);
+            const sunHours = (sunset - sunrise) / 1000 / 3600;
+            sunHoursEl.textContent = `${sunHours.toFixed(0)}hrs`;
+            sunriseTimeEl.textContent = sunrise.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            sunsetTimeEl.textContent = sunset.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        };
+
+        // --- Graph Drawing Function ---
+        const drawHourlyGraph = (hourlyData) => {
+            const ctx = hourlyGraph.getContext('2d');
+            const data = hourlyData.list.slice(0, 10);
+
+            // Adapt canvas to container size
+            hourlyGraph.width = graphContainer.offsetWidth;
+            hourlyGraph.height = graphContainer.offsetHeight;
+
+            const padding = 20;
+            const width = hourlyGraph.width - padding * 2;
+            const height = hourlyGraph.height - padding * 2;
+
+            const temps = data.map(item => currentUnit === 'metric' ? item.main.temp : toFahrenheit(item.main.temp));
+            const times = data.map(item => new Date(item.dt * 1000).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }));
+            const precipitations = data.map(item => (item.pop * 100).toFixed(0)); // Probability of precipitation
+
+            ctx.clearRect(0, 0, hourlyGraph.width, hourlyGraph.height);
+
+            // Find min/max temp for scaling
+            const minTemp = Math.min(...temps);
+            const maxTemp = Math.max(...temps);
+            const tempRange = maxTemp - minTemp;
+            const scaleY = height / (tempRange > 0 ? tempRange : 1);
+
+            // Draw the filled area (gradient)
+            const gradient = ctx.createLinearGradient(0, 0, 0, hourlyGraph.height);
+            gradient.addColorStop(0, 'rgba(255, 230, 0, 0.3)');
+            gradient.addColorStop(1, 'rgba(255, 230, 0, 0.05)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(padding, height + padding);
+            for (let i = 0; i < temps.length; i++) {
+                const x = padding + (i / (temps.length - 1)) * width;
+                const y = padding + height - (temps[i] - minTemp) * scaleY;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(width + padding, height + padding);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw the line for temperature
+            ctx.strokeStyle = '#fbc02d'; // Yellow
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            for (let i = 0; i < temps.length; i++) {
+                const x = padding + (i / (temps.length - 1)) * width;
+                const y = padding + height - (temps[i] - minTemp) * scaleY;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw temperature points and labels
+            ctx.font = '12px Inter';
+            ctx.fillStyle = '#333';
+            for (let i = 0; i < temps.length; i++) {
+                const x = padding + (i / (temps.length - 1)) * width;
+                const y = padding + height - (temps[i] - minTemp) * scaleY;
+
+                // Draw point
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#fbc02d';
+                ctx.fill();
+
+                // Draw temp label
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#333';
+                ctx.fillText(`${temps[i].toFixed(0)}°`, x, y - 10);
+
+                // Draw precipitation label
+                ctx.fillStyle = '#1e40af';
+                if (precipitations[i] > 0) {
+                    ctx.fillText(`${precipitations[i]}%`, x, height + padding - 20);
+                }
+            }
+
+            // Draw time labels (X-axis)
+            ctx.fillStyle = '#555';
+            times.forEach((time, i) => {
+                const x = padding + (i / (times.length - 1)) * width;
+                ctx.fillText(time.split(' ')[0], x, height + padding + 15);
+                ctx.fillText(time.split(' ')[1], x, height + padding + 30);
+            });
+        };
+
+        const renderMap = (lat, lon) => {
+            // A simple Google Maps embed URL that centers on the given lat/lon
+            const mapUrl = `https://maps.google.com/maps?q=${lat},${lon}&z=10&output=embed`;
+
+            // Clear any existing map iframe
+            mapIframeContainer.innerHTML = '';
+
+            const iframe = document.createElement('iframe');
+            iframe.src = mapUrl;
+            iframe.width = "100%";
+            iframe.height = "100%";
+            iframe.style.border = "0";
+            iframe.setAttribute("allowfullscreen", "");
+            iframe.setAttribute("loading", "lazy");
+            iframe.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
+
+            mapIframeContainer.appendChild(iframe);
+        };
+
+        // --- Fetch and Render All Data ---
+        const fetchAndRenderWeather = async (city) => {
+            if (isFetching) return;
+            loadingSpinner.classList.remove('hidden');
+            isFetching = true;
+
+            try {
+                // Fetch current weather, 5-day forecast (which we'll use for both), and air pollution data
+                const weatherRes = await fetch(`${WEATHER_API_URL}?q=${city}&units=metric&appid=${API_KEY}`);
+
+                if (!weatherRes.ok) {
+                    throw new Error("City not found Please try again.");
+                }
+
+                const weatherData = await weatherRes.json();
+
+                // Now fetch forecast and pollution data using the coordinates from the weather data
+                const lat = weatherData.coord.lat;
+                const lon = weatherData.coord.lon;
+
+                const [forecastRes, pollutionRes] = await Promise.all([
+                    fetch(`${FORECAST_API_URL}?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`),
+                    fetch(`${AIR_POLLUTION_API_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}`)
+                ]);
+
+                const forecastData = await forecastRes.json();
+                const pollutionData = pollutionRes.ok ? await pollutionRes.json() : null;
+
+                renderCurrentWeather(weatherData);
+                renderForecast(forecastData);
+                renderDetails(weatherData, pollutionData);
+                drawHourlyGraph(forecastData);
+                renderMap(lat, lon);
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                // Use a custom message box instead of alert
+                showError("Error: " + error.message);
+            } finally {
+                loadingSpinner.classList.add('hidden');
+                isFetching = false;
+            }
+        };
+
+        const showError = (message) => {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50';
+            errorDiv.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                    <p class="text-lg font-semibold mb-4">${message}</p>
+                    <button onclick="this.parentElement.parentElement.remove()" class="bg-blue-600 text-white px-4 py-2 rounded-lg">OK</button>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+        };
+
+        const updateUI = () => {
+            if (!currentData || !forecastData) return;
+            renderCurrentWeather(currentData);
+            renderForecast(forecastData);
+            renderDetails(currentData, pollutionData); // Re-render details to update units
+            drawHourlyGraph(forecastData);
+
+            // Update button styles
+            if (currentUnit === 'metric') {
+                tempCBtn.classList.add('text-gray-800');
+                tempCBtn.classList.remove('text-gray-400');
+                tempFBtn.classList.add('text-gray-400');
+                tempFBtn.classList.remove('text-gray-800');
+            } else {
+                tempFBtn.classList.add('text-gray-800');
+                tempFBtn.classList.remove('text-gray-400');
+                tempCBtn.classList.add('text-gray-400');
+                tempCBtn.classList.remove('text-gray-800');
+            }
+        };
+
+        // --- Event Listeners and Initial Load ---
+        tempCBtn.addEventListener('click', () => {
+            currentUnit = 'metric';
+            updateUI();
+        });
+
+        tempFBtn.addEventListener('click', () => {
+            currentUnit = 'imperial';
+            updateUI();
+        });
+
+        // Event listener for the search button
+        searchButton.addEventListener('click', () => {
+            const city = citySearchInput.value.trim();
+            if (city) {
+                fetchAndRenderWeather(city);
+            } else {
+                showError("Please enter a city name.");
+            }
+        });
+
+        // Event listener for the "Enter" key on the input field
+        citySearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                searchButton.click();
+            }
+        });
+
+        // Add a resize listener to redraw the graph
+        window.addEventListener('resize', () => {
+            if (forecastData) {
+                drawHourlyGraph(forecastData);
+            }
+        });
+
+        // Initial load.
+        window.addEventListener('DOMContentLoaded', () => {
+            // This ensures a blank canvas on initial load with a prompt to the user
+            // No initial city is fetched.
+        });
+    </script>
+</body>
+
+</html>
